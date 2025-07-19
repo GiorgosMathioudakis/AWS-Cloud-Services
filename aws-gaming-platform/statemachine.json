@@ -1,0 +1,179 @@
+{
+    "Comment": "A description of my state machine",
+    "StartAt": "action",
+    "States": {
+      "action": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.action",
+            "StringEquals": "Login",
+            "Next": "Login",
+            "Comment": "Login"
+          },
+          {
+            "Variable": "$.action",
+            "StringEquals": "Register",
+            "Next": "validate input",
+            "Comment": "Register"
+          },
+          {
+            "And": [
+              {
+                "Not": {
+                  "Variable": "$.action",
+                  "StringEquals": "Register"
+                }
+              },
+              {
+                "Not": {
+                  "Variable": "$.action",
+                  "StringEquals": "Login"
+                }
+              }
+            ],
+            "Next": "bad request",
+            "Comment": "invalid action"
+          }
+        ]
+      },
+      "Login": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "OutputPath": "$.Payload",
+        "Parameters": {
+          "Payload.$": "$",
+          "FunctionName": "arn:aws:lambda:us-east-1:089781853604:function:Login:$LATEST"
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "BackoffRate": 2
+          }
+        ],
+        "End": true
+      },
+      "validate input": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "OutputPath": "$.Payload",
+        "Parameters": {
+          "Payload.$": "$",
+          "FunctionName": "arn:aws:lambda:us-east-1:089781853604:function:ValidateInput:$LATEST"
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "BackoffRate": 2
+          }
+        ],
+        "Next": "is input valid?"
+      },
+      "is input valid?": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.statusCode",
+            "NumericEquals": 200,
+            "Next": "check for duplicates",
+            "Comment": "valid input (200)"
+          },
+          {
+            "Variable": "$.statusCode",
+            "NumericEquals": 400,
+            "Next": "invalid input",
+            "Comment": "invalid input (400)"
+          }
+        ]
+      },
+      "check for duplicates": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "OutputPath": "$.Payload",
+        "Parameters": {
+          "Payload.$": "$",
+          "FunctionName": "arn:aws:lambda:us-east-1:089781853604:function:CheckForDuplicates:$LATEST"
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "BackoffRate": 2
+          }
+        ],
+        "Next": "found duplicates?"
+      },
+      "found duplicates?": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.statusCode",
+            "NumericEquals": 200,
+            "Next": "Pass",
+            "Comment": "no duplicates (200)"
+          },
+          {
+            "Variable": "$.statusCode",
+            "NumericEquals": 400,
+            "Next": "duplicate found",
+            "Comment": "duplicate (400)"
+          }
+        ]
+      },
+      "Pass": {
+        "Type": "Pass",
+        "Next": "Store user"
+      },
+      "Store user": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::dynamodb:putItem",
+        "Parameters": {
+          "TableName": "Users",
+          "Item": {
+            "username": {
+              "S.$": "$.username"
+            },
+            "email": {
+              "S.$": "$.email"
+            },
+            "passwordHash": {
+              "S.$": "$.passwordHash"
+            },
+            "highscore": {
+              "N.$": "States.Format('{}', $.highscore)"
+            }
+          }
+        },
+        "End": true
+      },
+      "bad request": {
+        "Type": "Fail"
+      },
+      "invalid input": {
+        "Type": "Fail"
+      },
+      "duplicate found": {
+        "Type": "Fail"
+      }
+    }
+  }
