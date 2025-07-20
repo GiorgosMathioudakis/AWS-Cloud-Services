@@ -1,6 +1,6 @@
 # AWS-Powered Cloud Services Projects 🚀
 
-This repository contains the implementations for three major assignments of the **HY452 / CS452 - Introduction to the Science and Technology of Services** course at the University of Crete (2024-2025). The focus of these projects is on building, deploying, and integrating **serverless, RESTful, and distributed systems** using **Amazon Web Services (AWS)** and other cloud technologies.
+This repository contains the implementations for three major assignments of the **HY452 / CS452 - Introduction to the Science and Technology of Services** course at the University of Crete (2024-2025). The focus of these projects is on building, deploying, and integrating **serverless, RESTful, and distributed systems** using **Amazon Web Services (AWS)** and other cloud technologies. **Each Project has it is own report in their respective directory.**
 
 ---
 
